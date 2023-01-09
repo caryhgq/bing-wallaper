@@ -110,13 +110,15 @@ func readLoactionData(savePath string) []BingWallpaper {
 // dataMerge 数据合并(新旧数据合并)
 func dataMerge(newList []BingWallpaper, oldList []BingWallpaper) []BingWallpaper {
 	var allList []BingWallpaper
-	// 旧数据最近的一项
-	lastItem := oldList[0]
 	// 旧数据中最近一项在新数据中index
 	lastIndexAtNewList := -1
-	for i, v := range newList {
-		if v.Date == lastItem.Date {
-			lastIndexAtNewList = i
+	if len(oldList) > 0 {
+		// 旧数据最近的一项
+		lastItem := oldList[0]
+		for i, v := range newList {
+			if v.Date == lastItem.Date {
+				lastIndexAtNewList = i
+			}
 		}
 	}
 
@@ -154,7 +156,6 @@ func downloadImage(done chan bool, imgUrl string, savePath string) {
 
 // bingWallpaperBatchDownload 批量下载
 func bingWallpaperBatchDownload(data []BingWallpaper, savePath string) {
-	fmt.Println("download start ...")
 	done := make(chan bool)
 	for _, v := range data {
 		go downloadImage(done, v.Url, savePath)
@@ -162,7 +163,6 @@ func bingWallpaperBatchDownload(data []BingWallpaper, savePath string) {
 	for range data {
 		<-done
 	}
-	fmt.Println("download complete!")
 }
 
 func main() {
