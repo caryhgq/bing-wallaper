@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 )
 
@@ -90,19 +89,19 @@ func saveBingWallpaperData(data []BingWallpaper, saveDir string) {
 	encoder := json.NewEncoder(byteBuf)
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(data)
-	os.WriteFile(saveDir+"db.json", byteBuf.Bytes(), 0644)
+	os.WriteFile(saveDir, byteBuf.Bytes(), 0644)
 }
 
 // readLoactionData 读取当前本地数据
 func readLoactionData(savePath string) []BingWallpaper {
 	var bingWallpaperList []BingWallpaper
-	byteData, err := os.ReadFile(savePath + "db.json")
+	byteData, err := os.ReadFile(savePath)
 	if err != nil {
-		fmt.Println("error:", err)
+		return bingWallpaperList
 	}
 	err = json.Unmarshal(byteData, &bingWallpaperList)
 	if err != nil {
-		fmt.Println("error:", err)
+		return bingWallpaperList
 	}
 	return bingWallpaperList
 }
@@ -132,45 +131,10 @@ func dataMerge(newList []BingWallpaper, oldList []BingWallpaper) []BingWallpaper
 	return allList
 }
 
-// parseFileName  通过文件路径解析文件名称
-func parseFileName(resourceUrl string) string {
-	u, err := url.Parse(resourceUrl)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return u.Query().Get("id")
-}
-
-// downloadImage 下载图片到本地
-func downloadImage(done chan bool, imgUrl string, savePath string) {
-	b, err := httpGet(imgUrl)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	err = os.WriteFile(savePath+parseFileName(imgUrl), b, 0644)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	done <- true
-}
-
-// bingWallpaperBatchDownload 批量下载
-func bingWallpaperBatchDownload(data []BingWallpaper, savePath string) {
-	done := make(chan bool)
-	for _, v := range data {
-		go downloadImage(done, v.Url, savePath)
-	}
-	for range data {
-		<-done
-	}
-}
-
 func main() {
-	dbPath := flag.String("f", "./", "data file directory")
-	savePath := flag.String("s", "./", "file directory")
+	dbPath := flag.String("f", "./db.json", "data file")
 	flag.Parse()
 	localBingWallpaperList := readLoactionData(*dbPath)
 	bingWallpaperList := getBingWallpaperSourceData("https://cn.bing.com")
 	saveBingWallpaperData(dataMerge(bingWallpaperList, localBingWallpaperList), *dbPath)
-	bingWallpaperBatchDownload(bingWallpaperList, *savePath)
 }
